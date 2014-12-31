@@ -14,8 +14,13 @@ data Options = Options {
 
 parseOptions :: Parser Options
 parseOptions = Options
-  <$> (optional $ strOption 
-        (metavar "DELIM" <> short 'd' <> help "Input field delimiter. Defaults to whitespace."))
+  <$> (setDelimiter <|> tabDelimiter)
+
+setDelimiter = optional 
+  $ strOption 
+      (metavar "DELIM" <> short 'd' <> help "Input field delimiter. Defaults to whitespace.")
+
+tabDelimiter = flag' (Just "\t") (short 't' <> help "Use tab as input field delimiter: a shortcut for -d $'\t'.")
 
 opts = info (helper <*> parseOptions)
             (fullDesc 
