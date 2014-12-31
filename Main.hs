@@ -2,15 +2,37 @@ module Main where
 import Data.List 
 import Data.Monoid
 import Text.Printf
+import Options.Applicative
+import Data.List.Split (splitOn)
+import Control.Applicative
 
 -- TODO change the delimiter to tabs or whitespace
 
+data Options = Options {
+    inputDelimiter :: Maybe String -- defaults to any whitespace
+  } deriving (Show)
+
+parseOptions :: Parser Options
+parseOptions = Options
+  <$> (optional $ strOption 
+        (metavar "DELIM" <> short 'd' <> help "Input field delimiter. Defaults to whitespace."))
+
+opts = info (helper <*> parseOptions)
+            (fullDesc 
+              <> progDesc "Pretty format TSV input into table with aligned and wrapped cells"
+              <> header "table"
+              <> footer "https://github.com/danchoi/table")
+
 main = do 
-    s <- getContents 
-    let (header, rest) = table . map words . lines $ s
-    putStrLn $ printRow 1 header 
-    putStrLn $ printDivider 1 (map snd header)
-    mapM_ (putStrLn . printRow 1) rest
+  Options delim <- execParser opts
+  let splitter = case delim of 
+                    Nothing -> words
+                    Just d -> splitOn d
+  s <- getContents 
+  let (header, rest) = table . map splitter . lines $ s
+  putStrLn $ printRow 1 header 
+  putStrLn $ printDivider 1 (map snd header)
+  mapM_ (putStrLn . printRow 1) rest
 
 -- | prints a row of cells with dividers
 printRow :: Int -> [(String, Int)] -> String
