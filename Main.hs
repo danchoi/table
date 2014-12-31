@@ -3,6 +3,8 @@ import Data.List
 import Data.Monoid
 import Text.Printf
 
+-- TODO change the delimiter to tabs or whitespace
+
 main = do 
     s <- getContents 
     let (header, rest) = table . map words . lines $ s
@@ -22,8 +24,8 @@ margin w c = take w $ repeat c
 printDivider :: Int -> [Int] -> String
 printDivider gutter widths = 
     mconcat [margin gutter '-'
-      , (intercalate "+" 
-        $ map (\w -> take (w + 1) $ repeat '-') widths)
+      , (intercalate "-+-" 
+        $ map (\w -> take w $ repeat '-') widths)
       , margin gutter '-']
 
 
