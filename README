@@ -1,0 +1,9 @@
+table
+
+Formats lines of DSV (delimiter-separated values) or CSV into a pretty table
+
+
+TODO
+
+- left align values unless all non-null values are numerical
+- start wrapping long cells. first do manually
