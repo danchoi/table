@@ -20,7 +20,9 @@ setDelimiter = optional
   $ strOption 
       (metavar "DELIM" <> short 'd' <> help "Input field delimiter. Defaults to whitespace.")
 
-tabDelimiter = flag' (Just "\t") (short 't' <> help "Use tab as input field delimiter: a shortcut for -d $'\t'.")
+tabDelimiter = flag' 
+    (Just "\t")
+    (short 't' <> help "Use tab as input field delimiter: a shortcut for -d $'\t'.")
 
 opts = info (helper <*> parseOptions)
             (fullDesc 
