@@ -92,14 +92,9 @@ printDivider gutter widths =
         $ map (\w -> take w $ repeat '-') widths)
       , margin gutter '-']
 
-{- 
-  Given a 2 dimensional table, generates a tuple:
-
-  One of the header, the rest for the rest of the values.  Each row is
-  represented as Cell, which contains dimension information. The first value
-  is the text content; the second is the normalized of the column width for
-  that cell. 
--}
+{- Each row is represented as Cell, which contains dimension information. The
+first value is the text content; the second is the normalized of the column
+width for that cell.  -}
 
 cells :: Int -> [[String]] -> [[ Cell ]]
 cells maxWidth = transpose . map (addCellDimensions maxWidth) . transpose 
