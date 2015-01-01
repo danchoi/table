@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-} 
+{-# LANGUAGE RecordWildCards, ScopedTypeVariables #-} 
 module Main where
 import Data.List 
 import Data.Monoid
@@ -6,7 +6,7 @@ import Text.Printf
 import Options.Applicative
 import Data.List.Split (splitOn)
 import Control.Applicative
-import Data.Char (isDigit)
+import Data.Char (isDigit, isSpace)
 
 -- TODO change the delimiter to tabs or whitespace
 
@@ -38,11 +38,11 @@ main = do
                     Nothing -> words
                     Just d -> splitOn d
   s <- getContents 
-  let (header:rest) =  cells . map splitter . lines $ s
+  let maxWidth = 15
+  let (header:rest) =  cells maxWidth . map splitter . lines $ s
   putStrLn $ printRow 1 header 
   putStrLn $ printDivider 1 $ map width header
   mapM_ (putStrLn . printRow 1) rest
-
 
 data Cell = Cell {
     content :: [String]
@@ -54,9 +54,28 @@ data Cell = Cell {
 -- | prints a row of cells with dividers
 printRow :: Int -> [Cell] -> String
 printRow gutter xs = 
-    mconcat [ margin gutter ' '
-      , (intercalate " | " $ map printCell xs )
-      , margin gutter ' '] 
+    let rowHeight = maximum $ map height xs
+        subcells :: [[String]]
+        subcells = map content xs
+        lines = map (\n -> 
+                       let ss :: [String] 
+                           ss = map (cellLine n) xs
+                       in formatRow ss)
+                    [0..(rowHeight - 1)] 
+    in mconcat $ intersperse "\n" $ lines
+  where formatRow :: [String] -> String
+        formatRow ss = 
+            mconcat [margin gutter ' ' , (intercalate " | " ss) , margin gutter ' '] 
+
+-- prints the nth line of a cell 
+cellLine :: Int -> Cell -> String
+cellLine n Cell {..} = 
+      if n < length content 
+      then printf fmt (content !! n)  
+      else printf fmt ""
+    where fmt | isNumeric = "%" ++ show width ++ "s"
+              | otherwise = "%-" ++ show width ++ "s"
+
 
 margin :: Int -> Char -> String
 margin w c = take w $ repeat c
@@ -68,11 +87,6 @@ printDivider gutter widths =
         $ map (\w -> take w $ repeat '-') widths)
       , margin gutter '-']
 
-printCell :: Cell  -> String
-printCell Cell {..} = printf fmt (head content)  
-    where fmt | isNumeric = "%" ++ show width ++ "s"
-              | otherwise = "%-" ++ show width ++ "s"
-
 {- 
   Given a 2 dimensional table, generates a tuple:
 
@@ -82,17 +96,52 @@ printCell Cell {..} = printf fmt (head content)
   that cell. 
 -}
 
-cells :: [[String]] -> [[ Cell ]]
-cells = transpose . map addCellDimensions . transpose 
+cells :: Int -> [[String]] -> [[ Cell ]]
+cells maxWidth = transpose . map (addCellDimensions maxWidth) . transpose 
 
--- | Input is a column. Add width and height to each cell in a column
-addCellDimensions :: [String] -> [Cell]
-addCellDimensions xs = 
-  let w = maximum . map length $ xs
-      h = 1 -- temporary
-      -- if all the cells except the 1st (which could be a header) are numeric,
+{- Input is a column of strings. Wraps data in a Cell, which adds width and
+height to each cell in a column, and also a flag if the column looks numeric,
+which determines the alignment.  Also wraps stings to max cell width -} 
+
+addCellDimensions :: Int -> [String] -> [Cell]
+addCellDimensions maxWidth xs = 
+  let w = min (maximum . map length $ xs) maxWidth
+      xs' = map (wrapString w) xs   -- [String] -> [[String]]
+      h = maximum (map length $ xs')    -- height is the max number of rows in a cell
+      -- If all the cells except the 1st (which could be a header) are numeric,
       -- flag cells as isNumeric
       numeric = all (all isDigit) (tail xs) 
-  in map (\x -> Cell [x] w h numeric) xs
+  in map (\x -> Cell x w h numeric) xs'
+
+wrapString :: Int -> String -> [String]
+wrapString maxWidth x = map trim . wrapLine maxWidth $ x
+
+------------------------------------------------------------------------
+-- Word wrapping
+-- taken from http://moreindirection.blogspot.com/2010/08/blog-post.html
 
 
+trim :: String -> String
+trim = trimAndReverse . trimAndReverse
+  where trimAndReverse = reverse . dropWhile isSpace
+
+reverseBreak :: (a -> Bool) -> [a] -> ([a], [a])
+reverseBreak f xs = (reverse before, reverse after)
+  where (after, before) = break f $ reverse xs
+
+wrapLine :: Int -> String -> [String]
+wrapLine maxLen line 
+  | length line <= maxLen  = [line]
+  | any isSpace beforeMax  = beforeSpace : (wrapLine maxLen $ afterSpace ++ afterMax)
+  | otherwise              = beforeMax : wrapLine maxLen afterMax
+    where (beforeMax, afterMax) = splitAt maxLen line
+          (beforeSpace, afterSpace) = reverseBreak isSpace beforeMax
+
+{-
+
+-- word wrapping usage
+
+main :: IO ()
+main = interact $ unlines . concatMap (map trim . wrapLine maxLen) . lines
+  where maxLen = 72
+-}
