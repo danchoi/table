@@ -68,21 +68,20 @@ printDivider gutter widths =
         $ map (\w -> take w $ repeat '-') widths)
       , margin gutter '-']
 
-
 printCell :: Cell  -> String
 printCell Cell {..} = printf fmt (head content)  
     where fmt | isNumeric = "%" ++ show width ++ "s"
               | otherwise = "%-" ++ show width ++ "s"
 
--- assume for now a header row and rest
-{- Given a 2 dimensional table, generates a tuple:
+{- 
+  Given a 2 dimensional table, generates a tuple:
 
-    One of the header, the rest for the rest of the values.
-    Each row is represented as [(String, Int)]. The first
-    value is the text content; the second is the normalized of the column width
-    for that cell. 
+  One of the header, the rest for the rest of the values.  Each row is
+  represented as Cell, which contains dimension information. The first value
+  is the text content; the second is the normalized of the column width for
+  that cell. 
 -}
--- | Generate cells with sizing information 
+
 cells :: [[String]] -> [[ Cell ]]
 cells = transpose . map addCellDimensions . transpose 
 
