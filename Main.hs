@@ -36,7 +36,7 @@ main = do
                     Nothing -> words
                     Just d -> splitOn d
   s <- getContents 
-  let (header, rest) = table . map splitter . lines $ s
+  let (header:rest) =  cells . map splitter . lines $ s
   putStrLn $ printRow 1 header 
   putStrLn $ printDivider 1 (map snd header)
   mapM_ (putStrLn . printRow 1) rest
@@ -71,12 +71,6 @@ printCell (x, width) = printf fmt x
     value is the text content; the second is the normalized of the column width
     for that cell. 
 -}
-table :: [[String]] -> ([(String, Int)], [[(String, Int)]])
-table xs = 
-  let xs' = cells xs
-      header = head xs'
-      rest = tail xs'
-  in (header, rest)
 
 -- | Generate cells with normalized column widths:
 cells :: [[String]] -> [[(String, Int)]]
