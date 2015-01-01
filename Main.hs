@@ -42,7 +42,7 @@ main = do
                     Just d -> splitOn d
   s <- getContents 
   let maxWidth = 35 -- CHANGE
-  let rows =  cells maxWidth . map splitter . lines $ s
+  let rows =  mkCells maxWidth . map splitter . lines $ s
   mapM_ (\row -> do
       when rowDivide $ 
          putStrLn $ printDivider 1 $ map width row
@@ -96,8 +96,8 @@ printDivider gutter widths =
 first value is the text content; the second is the normalized of the column
 width for that cell.  -}
 
-cells :: Int -> [[String]] -> [[ Cell ]]
-cells maxWidth = transpose . map (addCellDimensions maxWidth) . transpose 
+mkCells :: Int -> [[String]] -> [[ Cell ]]
+mkCells maxWidth = transpose . map (addCellDimensions maxWidth) . transpose 
 
 {- Input is a column of strings. Wraps data in a Cell, which adds width and
 height to each cell in a column, and also a flag if the column looks numeric,
