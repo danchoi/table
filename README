@@ -1,9 +1,9 @@
 table
 
-Formats lines of DSV (delimiter-separated values) or CSV into a pretty table
+Formats lines of DSV (delimiter-separated values) or CSV into a pretty
+table. Wraps cells with long content to try to fit the whole table fits in the
+screen.
 
 
-TODO
 
-- left align values unless all non-null values are numerical
-- start wrapping long cells. first do manually
+
