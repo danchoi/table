@@ -139,11 +139,3 @@ wrapLine maxLen line
     where (beforeMax, afterMax) = splitAt maxLen line
           (beforeSpace, afterSpace) = reverseBreak isSpace beforeMax
 
-{-
-
--- word wrapping usage
-
-main :: IO ()
-main = interact $ unlines . concatMap (map trim . wrapLine maxLen) . lines
-  where maxLen = 72
--}
