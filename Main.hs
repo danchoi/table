@@ -38,11 +38,11 @@ main = do
   s <- getContents 
   let (header:rest) =  cells . map splitter . lines $ s
   putStrLn $ printRow 1 header 
-  putStrLn $ printDivider 1 (map snd header)
+  putStrLn $ printDivider 1 $ map (\(_,w,_) -> w) header
   mapM_ (putStrLn . printRow 1) rest
 
 -- | prints a row of cells with dividers
-printRow :: Int -> [(String, Int)] -> String
+printRow :: Int -> [Cell] -> String
 printRow gutter xs = 
     mconcat [ margin gutter ' '
       , (intercalate " | " $ map printCell xs )
@@ -58,10 +58,10 @@ printDivider gutter widths =
         $ map (\w -> take w $ repeat '-') widths)
       , margin gutter '-']
 
-printCell :: (String, Int)  -> String
-printCell (x, width) = printf fmt x 
+-- TODO 
+printCell :: Cell  -> String
+printCell (xs, width, height) = printf fmt (head xs) -- change head
     where fmt = "%" ++ show width ++ "s"
-
 
 -- assume for now a header row and rest
 {- Given a 2 dimensional table, generates a tuple:
@@ -71,14 +71,17 @@ printCell (x, width) = printf fmt x
     value is the text content; the second is the normalized of the column width
     for that cell. 
 -}
+type Cell = ([String], Int, Int)
 
--- | Generate cells with normalized column widths:
-cells :: [[String]] -> [[(String, Int)]]
-cells = transpose . map colw . transpose 
+-- | Generate cells with array or rows, normalized column widths and height (num rows):
+cells :: [[String]] -> [[ Cell ]]
+cells = transpose . map addCellDimensions . transpose 
 
--- | Add width to each cell in a column
-colw :: [String] -> [(String, Int)]
-colw xs = let width = maximum . map length $ xs
-  in map (\x -> (x, width)) xs
+-- | Add width and height to each cell in a column
+addCellDimensions :: [String] -> [Cell]
+addCellDimensions xs = 
+  let width = maximum . map length $ xs
+      height = 1 -- temporary
+  in map (\x -> ([x], width, height)) xs
 
 
