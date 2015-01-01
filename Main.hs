@@ -6,6 +6,7 @@ import Text.Printf
 import Options.Applicative
 import Data.List.Split (splitOn)
 import Control.Applicative
+import Data.Char (isDigit)
 
 -- TODO change the delimiter to tabs or whitespace
 
@@ -47,6 +48,7 @@ data Cell = Cell {
     content :: [String]
   , width :: Int
   , height :: Int 
+  , isNumeric :: Bool
   } deriving (Show)
 
 -- | prints a row of cells with dividers
@@ -69,7 +71,8 @@ printDivider gutter widths =
 
 printCell :: Cell  -> String
 printCell Cell {..} = printf fmt (head content)  
-    where fmt = "%" ++ show width ++ "s"
+    where fmt | isNumeric = "%" ++ show width ++ "s"
+              | otherwise = "%-" ++ show width ++ "s"
 
 -- assume for now a header row and rest
 {- Given a 2 dimensional table, generates a tuple:
@@ -79,15 +82,18 @@ printCell Cell {..} = printf fmt (head content)
     value is the text content; the second is the normalized of the column width
     for that cell. 
 -}
--- | Generate cells with array or rows, normalized column widths and height (num rows):
+-- | Generate cells with sizing information 
 cells :: [[String]] -> [[ Cell ]]
 cells = transpose . map addCellDimensions . transpose 
 
--- | Add width and height to each cell in a column
+-- | Input is a column. Add width and height to each cell in a column
 addCellDimensions :: [String] -> [Cell]
 addCellDimensions xs = 
   let w = maximum . map length $ xs
       h = 1 -- temporary
-  in map (\x -> Cell [x] w h) xs
+      -- if all the cells except the 1st (which could be a header) are numeric,
+      -- flag cells as isNumeric
+      numeric = all (all isDigit) (tail xs) 
+  in map (\x -> Cell [x] w h numeric) xs
 
 
