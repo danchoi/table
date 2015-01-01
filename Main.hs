@@ -7,16 +7,19 @@ import Options.Applicative
 import Data.List.Split (splitOn)
 import Control.Applicative
 import Data.Char (isDigit, isSpace)
+import Control.Monad (when)
 
 -- TODO change the delimiter to tabs or whitespace
 
 data Options = Options {
     inputDelimiter :: Maybe String -- defaults to any whitespace
+  , printRowDividers :: Bool 
   } deriving (Show)
 
 parseOptions :: Parser Options
 parseOptions = Options
   <$> (setDelimiter <|> tabDelimiter)
+  <*> switch (short 'r' <> help "Print row dividers")
 
 setDelimiter = optional 
   $ strOption 
@@ -33,16 +36,18 @@ opts = info (helper <*> parseOptions)
               <> footer "https://github.com/danchoi/table")
 
 main = do 
-  Options delim <- execParser opts
+  Options delim rowDivide <- execParser opts
   let splitter = case delim of 
                     Nothing -> words
                     Just d -> splitOn d
   s <- getContents 
   let maxWidth = 35 -- CHANGE
-  let (header:rest) =  cells maxWidth . map splitter . lines $ s
-  putStrLn $ printRow 1 header 
-  putStrLn $ printDivider 1 $ map width header
-  mapM_ (putStrLn . printRow 1) rest
+  let rows =  cells maxWidth . map splitter . lines $ s
+  mapM_ (\row -> do
+      when rowDivide $ 
+         putStrLn $ printDivider 1 $ map width row
+      putStrLn . printRow 1 $ row 
+    ) rows
 
 data Cell = Cell {
     content :: [String]
