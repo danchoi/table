@@ -38,7 +38,7 @@ main = do
                     Nothing -> words
                     Just d -> splitOn d
   s <- getContents 
-  let maxWidth = 35
+  let maxWidth = 35 -- CHANGE
   let (header:rest) =  cells maxWidth . map splitter . lines $ s
   putStrLn $ printRow 1 header 
   putStrLn $ printDivider 1 $ map width header
@@ -106,12 +106,9 @@ which determines the alignment.  Also wraps stings to max cell width -}
 addCellDimensions :: Int -> [String] -> [Cell]
 addCellDimensions maxWidth xs = 
   let w = min (maximum . map length $ xs) maxWidth
-      xs' = map (wrapString w) xs   -- [String] -> [[String]]
-      h = maximum (map length $ xs')    -- height is the max number of rows in a cell
-      -- If all the cells except the 1st (which could be a header) are numeric,
-      -- flag cells as isNumeric
+      xs' = map (wrapString w) xs       -- wrapped string content
       numeric = all (all isDigit) (tail xs) 
-  in map (\x -> Cell x w h numeric) xs'
+  in map (\lines -> Cell lines w (length lines) numeric) xs'
 
 wrapString :: Int -> String -> [String]
 wrapString maxWidth x = map trim . wrapLine maxWidth $ x
