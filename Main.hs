@@ -38,7 +38,7 @@ main = do
                     Nothing -> words
                     Just d -> splitOn d
   s <- getContents 
-  let maxWidth = 15
+  let maxWidth = 35
   let (header:rest) =  cells maxWidth . map splitter . lines $ s
   putStrLn $ printRow 1 header 
   putStrLn $ printDivider 1 $ map width header
