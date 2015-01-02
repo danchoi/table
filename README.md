@@ -96,7 +96,14 @@ everything nicely on the screen or printout.
 
 MIT License
 
-## Related
+## Alternatives
 
 * [csvlook](http://csvkit.readthedocs.org/en/latest/scripts/csvlook.html)
 * [csvcut](http://csvkit.readthedocs.org/en/latest/scripts/csvcut.html)
+
+## Related
+
+* [jsontsv](https://github.com/danchoi/jsontsv)
+* [jsonsql](https://github.com/danchoi/jsonsql)
+* [tsvsql](https://github.com/danchoi/tsvsql)
+
