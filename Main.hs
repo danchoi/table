@@ -14,12 +14,14 @@ import Control.Monad (when)
 data Options = Options {
     inputDelimiter :: Maybe String -- defaults to any whitespace
   , printRowDividers :: Bool 
+  , maxWidth :: Int
   } deriving (Show)
 
 parseOptions :: Parser Options
 parseOptions = Options
   <$> (setDelimiter <|> tabDelimiter)
   <*> switch (short 'r' <> help "Print row dividers")
+  <*> (read <$> strOption (value "35" <> short 'w' <> metavar "WIDTH" <> help "Max table width"))
 
 setDelimiter = optional 
   $ strOption 
@@ -36,18 +38,32 @@ opts = info (helper <*> parseOptions)
               <> footer "https://github.com/danchoi/table")
 
 main = do 
-  Options delim rowDivide <- execParser opts
-  let splitter = case delim of 
+  Options {..} <- execParser opts
+  let splitter = case inputDelimiter of 
                     Nothing -> words
                     Just d -> splitOn d
   s <- getContents 
-  let maxWidth = 35 -- CHANGE
-  let rows =  mkCells maxWidth . map splitter . lines $ s
+  let initialWidths = getCellWidths . map splitter . lines $ s 
+  -- Adjust the max width subtract padding for gutters on side and ' | ' between cells
+  let adjMaxWidth = maxWidth - 2 - ((length initialWidths - 1) * 3)
+  let adjustedWidths = adjustWidths adjMaxWidth initialWidths
+  let rows  = map splitter . lines $ s
+  let rows' = mkCells adjustedWidths rows
   mapM_ (\row -> do
-      when rowDivide $ 
+      when printRowDividers $ 
          putStrLn $ printDivider 1 $ map width row
       putStrLn . printRow 1 $ row 
-    ) rows
+    ) rows'
+
+adjustWidths :: Int -> [Int] -> [Int]
+adjustWidths maxWidth xs | sum xs <= maxWidth = xs
+                    | otherwise     = adjustWidths maxWidth $ reduceWidest xs
+
+reduceWidest :: [Int] -> [Int]
+reduceWidest xs = let m = maximum xs
+                  in [ if x == m then x - 1 else x | x <- xs ]
+
+
 
 data Cell = Cell {
     content :: [String]
@@ -56,7 +72,36 @@ data Cell = Cell {
   , isNumeric :: Bool
   } deriving (Show)
 
+-- | get initial column widths
+getCellWidths :: [[String]] -> [Int]
+getCellWidths rows = map (maximum . map length) . transpose $ rows
+
+{- Each row is represented as Cell, which contains dimension information. The
+first value is the text content; the second is the normalized of the column
+width for that cell.  -}
+
+mkCells :: [Int] -> [[String]] -> [[Cell]]
+mkCells columnWidths rows = 
+    let cols     = transpose rows
+        colCells = map (\(width, cell) -> addCellDimensions width cell) $ zip columnWidths cols 
+    in transpose colCells
+
+{- Input is a column of strings. Wraps data in a Cell, which adds width and
+height to each cell in a column, and also a flag if the column looks numeric,
+which determines the alignment.  Also wraps stings to max cell width -} 
+
+addCellDimensions :: Int -> [String] -> [Cell]
+addCellDimensions maxWidth xs = 
+  let w = min (maximum . map length $ xs) maxWidth
+      xs' = map (wrapString w) xs       -- wrapped string content
+      numeric = all (all isDigit) (if length xs > 1 then (tail xs) else xs)
+  in map (\lines -> Cell lines w (length lines) numeric) xs'
+
+wrapString :: Int -> String -> [String]
+wrapString maxWidth x = map trim . wrapLine maxWidth $ x
+
 -- | prints a row of cells with dividers
+--   gutter is the width of the blank space at left and right of table
 printRow :: Int -> [Cell] -> String
 printRow gutter xs = 
     let rowHeight = maximum $ map height xs
@@ -81,7 +126,6 @@ cellLine n Cell {..} =
     where fmt | isNumeric = "%" ++ show width ++ "s"
               | otherwise = "%-" ++ show width ++ "s"
 
-
 margin :: Int -> Char -> String
 margin w c = take w $ repeat c
 
@@ -92,26 +136,6 @@ printDivider gutter widths =
         $ map (\w -> take w $ repeat '-') widths)
       , margin gutter '-']
 
-{- Each row is represented as Cell, which contains dimension information. The
-first value is the text content; the second is the normalized of the column
-width for that cell.  -}
-
-mkCells :: Int -> [[String]] -> [[ Cell ]]
-mkCells maxWidth = transpose . map (addCellDimensions maxWidth) . transpose 
-
-{- Input is a column of strings. Wraps data in a Cell, which adds width and
-height to each cell in a column, and also a flag if the column looks numeric,
-which determines the alignment.  Also wraps stings to max cell width -} 
-
-addCellDimensions :: Int -> [String] -> [Cell]
-addCellDimensions maxWidth xs = 
-  let w = min (maximum . map length $ xs) maxWidth
-      xs' = map (wrapString w) xs       -- wrapped string content
-      numeric = all (all isDigit) (tail xs) 
-  in map (\lines -> Cell lines w (length lines) numeric) xs'
-
-wrapString :: Int -> String -> [String]
-wrapString maxWidth x = map trim . wrapLine maxWidth $ x
 
 ------------------------------------------------------------------------
 -- Word wrapping
