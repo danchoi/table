@@ -8,28 +8,32 @@ import Data.List.Split (splitOn)
 import Control.Applicative
 import Data.Char (isDigit, isSpace)
 import Control.Monad (when)
+import System.Process (readProcess)
 
 -- TODO change the delimiter to tabs or whitespace
 
 data Options = Options {
-    inputDelimiter :: Maybe String -- defaults to any whitespace
-  , printRowDividers :: Bool 
+    splitter :: String -> [String]   -- delimiter splitting function
+  , suppressRowDividers :: Bool 
   , maxWidth :: Int
-  } deriving (Show)
+  } 
 
 parseOptions :: Parser Options
 parseOptions = Options
-  <$> (setDelimiter <|> tabDelimiter)
-  <*> switch (short 'r' <> help "Print row dividers")
-  <*> (read <$> strOption (value "35" <> short 'w' <> metavar "WIDTH" <> help "Max table width"))
+  <$> (setDelimiter <|> whiteSpaceDelimiter <|> pure (splitOn "\t"))
+  <*> switch (short 'r' <> help "Don't print row dividers")
+  <*> parseMaxWidth
 
-setDelimiter = optional 
-  $ strOption 
-      (metavar "DELIM" <> short 'd' <> help "Input field delimiter. Defaults to whitespace.")
+setDelimiter = 
+   splitOn <$> strOption (metavar "DELIM" <> short 'd' <> help "Input field delimiter. Default is TAB (\\t).")
 
-tabDelimiter = flag' 
-    (Just "\t")
-    (short 't' <> help "Use tab as input field delimiter: a shortcut for -d $'\t'.")
+whiteSpaceDelimiter = flag' 
+    words
+    (short 's' <> help "Use any run of whitespace as input field delimiter")
+
+parseMaxWidth = read <$> strOption (
+      value "0" <> short 'w' <> metavar "WIDTH" 
+      <> help "Max table width. Defaults to value of `tput cols` command.")
 
 opts = info (helper <*> parseOptions)
             (fullDesc 
@@ -39,18 +43,19 @@ opts = info (helper <*> parseOptions)
 
 main = do 
   Options {..} <- execParser opts
-  let splitter = case inputDelimiter of 
-                    Nothing -> words
-                    Just d -> splitOn d
   s <- getContents 
   let initialWidths = getCellWidths . map splitter . lines $ s 
   -- Adjust the max width subtract padding for gutters on side and ' | ' between cells
-  let adjMaxWidth = maxWidth - 2 - ((length initialWidths - 1) * 3)
+  maxWidth' <- do 
+      if maxWidth == 0
+      then (read <$> readProcess "tput" ["cols"] [])
+      else (return maxWidth)
+  let adjMaxWidth = maxWidth' - 2 - ((length initialWidths - 1) * 3)
   let adjustedWidths = adjustWidths adjMaxWidth initialWidths
   let rows  = map splitter . lines $ s
   let rows' = mkCells adjustedWidths rows
   mapM_ (\row -> do
-      when printRowDividers $ 
+      when (not suppressRowDividers) $ 
          putStrLn $ printDivider 1 $ map width row
       putStrLn . printRow 1 $ row 
     ) rows'
@@ -62,8 +67,6 @@ adjustWidths maxWidth xs | sum xs <= maxWidth = xs
 reduceWidest :: [Int] -> [Int]
 reduceWidest xs = let m = maximum xs
                   in [ if x == m then x - 1 else x | x <- xs ]
-
-
 
 data Cell = Cell {
     content :: [String]
