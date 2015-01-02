@@ -95,3 +95,8 @@ everything nicely on the screen.
 ## License
 
 MIT License
+
+## Related
+
+* [csvlook](http://csvkit.readthedocs.org/en/latest/scripts/csvlook.html)
+* [csvcut](http://csvkit.readthedocs.org/en/latest/scripts/csvcut.html)
