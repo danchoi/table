@@ -1,7 +1,6 @@
 # table
 
-ontsv -H 'number title user.login:user state repository.name:repo labels.name:labels' |
-tableormats lines of TSV, CSV, or DSV (delimiter-separated values) into a pretty
+Formats lines of TSV, CSV, or DSV (delimiter-separated values) into a pretty
 plain text table, wrappings cells with long content to try to fit the table in
 the screen.
 
