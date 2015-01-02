@@ -86,7 +86,7 @@ Outputs this when the terminal width is 72 characters:
 
 You can use `table` to pretty-format TSV output from `mysql`, `psql`, or
 `sqlite3` as well, especially when you need row cell content to wrap to fit
-everything nicely on the screen.
+everything nicely on the screen or printout.
 
 ## Author
 
