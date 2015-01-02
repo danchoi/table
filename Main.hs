@@ -16,6 +16,7 @@ data Options = Options {
     splitter :: String -> [String]   -- delimiter splitting function
   , csvInput :: Bool
   , suppressRowDividers :: Bool 
+  , printHeaderDivider :: Bool 
   , maxWidth :: Int
   } 
 
@@ -23,7 +24,8 @@ parseOptions :: Parser Options
 parseOptions = Options
   <$> (setDelimiter <|> whiteSpaceDelimiter <|> pure (splitOn "\t"))
   <*> switch (short 'c' <> help "Parse input as CSV")
-  <*> switch (short 'r' <> help "Don't print row dividers")
+  <*> switch (short 'R' <> help "Don't print row dividers")
+  <*> switch (short 'H' <> help "Print header row divider")
   <*> parseMaxWidth
 
 setDelimiter = 
@@ -47,9 +49,9 @@ main = do
   Options {..} <- execParser opts
   s <- getContents 
   let rawRows = if csvInput 
-                then case CSV.parseCSV "" of
-                      Left err -> error $ "Error: " ++ err
-                      Right xs' -> xs'
+                then case CSV.parseCSV "" s of
+                      Left err -> error $ "Error: " ++ show err
+                      Right xs' -> stripBlankRows xs'
                 else map splitter . lines $ s 
   let initialWidths = getCellWidths rawRows
   -- Adjust the max width subtract padding for gutters on side and ' | ' between cells
@@ -60,11 +62,17 @@ main = do
   let adjMaxWidth = maxWidth' - 2 - ((length initialWidths - 1) * 3)
   let adjustedWidths = adjustWidths adjMaxWidth initialWidths
   let rows = mkCells adjustedWidths rawRows
-  mapM_ (\row -> do
-      when (not suppressRowDividers) $ 
+  mapM_ (\(n, row) -> do
+      when (not suppressRowDividers || (printHeaderDivider && n == 1)) $ 
          putStrLn $ printDivider 1 $ map width row
       putStrLn . printRow 1 $ row 
-    ) rows
+    ) $ zip [0..] rows
+  when (not suppressRowDividers) $ 
+    putStrLn $ printDivider 1 $ map width (head rows)
+
+
+stripBlankRows :: [[String]] -> [[String]]
+stripBlankRows xs = [x | x <- xs, all (> 0) $ map length x ]
 
 adjustWidths :: Int -> [Int] -> [Int]
 adjustWidths maxWidth xs | sum xs <= maxWidth = xs
