@@ -4,6 +4,15 @@ Formats lines of TSV, CSV, or DSV (delimiter-separated values) into a pretty
 plain text table, wrappings cells with long content to try to fit the table in
 the screen.
 
+
+## Install
+
+Assuming you have a recent version of the [Haskell
+platform](https://www.haskell.org/platform/) on your system, 
+
+    cabal update
+    cabal install table
+
 ## Usage 
 
 ```
