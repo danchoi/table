@@ -9,11 +9,12 @@ import Control.Applicative
 import Data.Char (isDigit, isSpace)
 import Control.Monad (when)
 import System.Process (readProcess)
+import qualified Text.CSV as CSV
 
--- TODO change the delimiter to tabs or whitespace
 
 data Options = Options {
     splitter :: String -> [String]   -- delimiter splitting function
+  , csvInput :: Bool
   , suppressRowDividers :: Bool 
   , maxWidth :: Int
   } 
@@ -21,6 +22,7 @@ data Options = Options {
 parseOptions :: Parser Options
 parseOptions = Options
   <$> (setDelimiter <|> whiteSpaceDelimiter <|> pure (splitOn "\t"))
+  <*> switch (short 'c' <> help "Parse input as CSV")
   <*> switch (short 'r' <> help "Don't print row dividers")
   <*> parseMaxWidth
 
@@ -44,7 +46,12 @@ opts = info (helper <*> parseOptions)
 main = do 
   Options {..} <- execParser opts
   s <- getContents 
-  let initialWidths = getCellWidths . map splitter . lines $ s 
+  let rawRows = if csvInput 
+                then case CSV.parseCSV "" of
+                      Left err -> error $ "Error: " ++ err
+                      Right xs' -> xs'
+                else map splitter . lines $ s 
+  let initialWidths = getCellWidths rawRows
   -- Adjust the max width subtract padding for gutters on side and ' | ' between cells
   maxWidth' <- do 
       if maxWidth == 0
@@ -52,13 +59,12 @@ main = do
       else (return maxWidth)
   let adjMaxWidth = maxWidth' - 2 - ((length initialWidths - 1) * 3)
   let adjustedWidths = adjustWidths adjMaxWidth initialWidths
-  let rows  = map splitter . lines $ s
-  let rows' = mkCells adjustedWidths rows
+  let rows = mkCells adjustedWidths rawRows
   mapM_ (\row -> do
       when (not suppressRowDividers) $ 
          putStrLn $ printDivider 1 $ map width row
       putStrLn . printRow 1 $ row 
-    ) rows'
+    ) rows
 
 adjustWidths :: Int -> [Int] -> [Int]
 adjustWidths maxWidth xs | sum xs <= maxWidth = xs

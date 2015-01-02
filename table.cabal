@@ -24,5 +24,6 @@ executable table
                      , optparse-applicative
                      , split >=0.2
                      , process
+                     , csv >= 0.1.0
   -- hs-source-dirs:      
   default-language:    Haskell2010
