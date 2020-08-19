@@ -20,7 +20,7 @@ executable table
   main-is:             Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.6 && <4.8
+  build-depends:       base >=4.8 && <5.0
                      , optparse-applicative
                      , split >=0.2
                      , process
